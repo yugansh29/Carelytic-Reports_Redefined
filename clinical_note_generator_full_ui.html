@@ -1,0 +1,420 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.app{display:flex;flex-direction:column;min-height:600px;background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;border:0.5px solid var(--color-border-tertiary)}
+.topnav{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:48px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0}
+.nav-brand{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{font-size:12px;padding:5px 12px;border-radius:var(--border-radius-md);cursor:pointer;color:var(--color-text-secondary);border:none;background:none}
+.nav-tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);font-weight:500}
+.nav-user{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)}
+.avatar-sm{width:26px;height:26px;border-radius:50%;background:#E6F1FB;color:#185FA5;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.screen{display:none;flex:1}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── VISIT LIST ── */
+.vl-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary)}
+.vl-toolbar input{flex:1;font-size:13px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary)}
+.btn-new{font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid #5DCAA5;background:#E1F5EE;color:#085041;cursor:pointer;white-space:nowrap}
+.visit-list{flex:1;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.visit-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.visit-card:hover{border-color:var(--color-border-secondary)}
+.vc-avatar{width:36px;height:36px;border-radius:50%;background:#E6F1FB;color:#185FA5;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vc-main{flex:1;min-width:0}
+.vc-name{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.vc-meta{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.vc-status{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.st-draft{background:#FAEEDA;color:#633806}
+.st-signed{background:#EAF3DE;color:#27500A}
+.st-review{background:#EEEDFE;color:#3C3489}
+
+/* ── RECORDER / COMPOSER ── */
+.composer{display:flex;flex-direction:column;flex:1}
+.composer-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary)}
+.patient-meta{display:flex;align-items:center;gap:10px}
+.pm-name{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.pm-sub{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+.composer-body{display:flex;flex:1;overflow:hidden}
+.left-panel{width:220px;flex-shrink:0;border-right:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.lp-section{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:4px}
+.lp-row{font-size:12px;color:var(--color-text-primary);line-height:1.5}
+.lp-label{color:var(--color-text-secondary);font-size:11px}
+.med-pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);margin:2px 2px 0 0}
+.center-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.rec-zone{padding:12px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.rec-controls{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rec-btn-main{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:7px 16px;border-radius:var(--border-radius-md);cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);transition:all .15s}
+.rec-btn-main.recording{background:#FCEBEB;border-color:#F09595;color:#791F1F}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--color-text-tertiary);transition:background .15s}
+.rec-btn-main.recording .rec-dot{background:#E24B4A}
+.rec-timer{font-size:12px;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.transcript-area{font-size:12px;color:var(--color-text-secondary);line-height:1.7;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 10px;min-height:52px;max-height:72px;overflow:hidden}
+.ai-status{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:11px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:#1D9E75}
+.soap-area{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.soap-section{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.soap-hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+.soap-hdr-label{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.04em}
+.ai-badge-sm{font-size:10px;padding:1px 7px;border-radius:20px;background:#EEEDFE;color:#3C3489}
+.flag-badge{font-size:10px;padding:1px 7px;border-radius:20px;background:#FAEEDA;color:#633806}
+.soap-body{padding:8px 10px}
+.soap-text{font-size:12px;color:var(--color-text-primary);line-height:1.65}
+.soap-text.flagged{border-left:2px solid #EF9F27;padding-left:8px;border-radius:0}
+.composer-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--color-background-primary);border-top:0.5px solid var(--color-border-tertiary);flex-shrink:0}
+.footer-left{font-size:11px;color:var(--color-text-tertiary)}
+.footer-btns{display:flex;gap:8px}
+.btn-ghost{font-size:12px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:none;color:var(--color-text-secondary);cursor:pointer}
+.btn-sign{font-size:12px;font-weight:500;padding:6px 16px;border-radius:var(--border-radius-md);border:0.5px solid #5DCAA5;background:#E1F5EE;color:#085041;cursor:pointer}
+
+/* ── HISTORY ── */
+.history-list{flex:1;padding:12px 16px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.hc{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 14px}
+.hc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.hc-name{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.hc-date{font-size:11px;color:var(--color-text-tertiary)}
+.hc-preview{font-size:12px;color:var(--color-text-secondary);line-height:1.55}
+.hc-foot{display:flex;align-items:center;gap:8px;margin-top:8px}
+.hc-tag{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.hc-action{font-size:11px;color:var(--color-text-secondary);cursor:pointer;margin-left:auto;padding:3px 8px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:none}
+
+/* ── SETTINGS ── */
+.settings-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+.settings-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px}
+.sc-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.sc-row:last-child{border-bottom:none}
+.sc-label{color:var(--color-text-primary)}
+.sc-val{color:var(--color-text-secondary)}
+select{font-size:12px;padding:4px 8px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary)}
+.toggle{width:32px;height:18px;border-radius:9px;background:var(--color-border-secondary);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#1D9E75}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle.on::after{transform:translateX(14px)}
+</style>
+
+<h2 class="sr-only">Full clinical note generator app with four screens: visit list, note composer, history, and settings</h2>
+
+<div class="app">
+  <div class="topnav">
+    <span class="nav-brand">NoteAI</span>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showScreen('visits',this)">Visits</button>
+      <button class="nav-tab" onclick="showScreen('composer',this)">Compose</button>
+      <button class="nav-tab" onclick="showScreen('history',this)">History</button>
+      <button class="nav-tab" onclick="showScreen('settings',this)">Settings</button>
+    </div>
+    <div class="nav-user">
+      <div class="avatar-sm">DR</div>
+      Dr. Ravi
+    </div>
+  </div>
+
+  <!-- SCREEN 1: VISIT LIST -->
+  <div class="screen active" id="screen-visits">
+    <div class="vl-toolbar">
+      <input type="text" placeholder="Search patients...">
+      <button class="btn-new" onclick="showScreen('composer',document.querySelectorAll('.nav-tab')[1])">+ New note</button>
+    </div>
+    <div class="visit-list">
+      <div style="font-size:11px;color:var(--color-text-tertiary);padding:2px 0 4px">Today — Apr 16</div>
+      <div class="visit-card" onclick="showScreen('composer',document.querySelectorAll('.nav-tab')[1])">
+        <div class="vc-avatar">RS</div>
+        <div class="vc-main">
+          <div class="vc-name">Raj Sharma</div>
+          <div class="vc-meta">42M &middot; Follow-up &middot; 9:00 AM &middot; Lower back pain</div>
+        </div>
+        <span class="vc-status st-review">In review</span>
+      </div>
+      <div class="visit-card" onclick="showScreen('composer',document.querySelectorAll('.nav-tab')[1])">
+        <div class="vc-avatar" style="background:#FBEAF0;color:#72243E">PM</div>
+        <div class="vc-main">
+          <div class="vc-name">Priya Mehta</div>
+          <div class="vc-meta">35F &middot; New patient &middot; 10:15 AM &middot; Headache</div>
+        </div>
+        <span class="vc-status st-draft">Draft</span>
+      </div>
+      <div class="visit-card" onclick="showScreen('composer',document.querySelectorAll('.nav-tab')[1])">
+        <div class="vc-avatar" style="background:#EAF3DE;color:#27500A">AK</div>
+        <div class="vc-main">
+          <div class="vc-name">Arjun Kumar</div>
+          <div class="vc-meta">67M &middot; Follow-up &middot; 11:30 AM &middot; Hypertension</div>
+        </div>
+        <span class="vc-status st-signed">Signed</span>
+      </div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);padding:8px 0 4px">Tomorrow — Apr 17</div>
+      <div class="visit-card">
+        <div class="vc-avatar" style="background:#FAEEDA;color:#633806">SN</div>
+        <div class="vc-main">
+          <div class="vc-name">Sunita Nair</div>
+          <div class="vc-meta">58F &middot; Annual wellness &middot; 9:30 AM</div>
+        </div>
+        <span class="vc-status" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Upcoming</span>
+      </div>
+      <div class="visit-card">
+        <div class="vc-avatar" style="background:#EEEDFE;color:#3C3489">VB</div>
+        <div class="vc-main">
+          <div class="vc-name">Vikram Bose</div>
+          <div class="vc-meta">29M &middot; New patient &middot; 11:00 AM</div>
+        </div>
+        <span class="vc-status" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Upcoming</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: COMPOSER -->
+  <div class="screen" id="screen-composer">
+    <div class="composer">
+      <div class="composer-header">
+        <div class="patient-meta">
+          <div class="vc-avatar">RS</div>
+          <div>
+            <div class="pm-name">Raj Sharma</div>
+            <div class="pm-sub">42M &middot; Follow-up &middot; General medicine &middot; Apr 16, 2026</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--color-text-tertiary)">Auto-saved 2 min ago</span>
+          <button class="btn-ghost" style="font-size:11px" onclick="sendPrompt('What export formats should I support — PDF, FHIR, or copy-paste?')">Export ↗</button>
+        </div>
+      </div>
+      <div class="composer-body">
+        <!-- Left context panel -->
+        <div class="left-panel">
+          <div>
+            <div class="lp-section">Patient</div>
+            <div class="lp-row"><span class="lp-label">DOB</span><br>14 Mar 1984</div>
+            <div class="lp-row" style="margin-top:6px"><span class="lp-label">MRN</span><br>MH-00421</div>
+          </div>
+          <div>
+            <div class="lp-section">Visit</div>
+            <div class="lp-row"><span class="lp-label">Type</span><br>Follow-up</div>
+            <div class="lp-row" style="margin-top:6px"><span class="lp-label">Specialty</span><br>General medicine</div>
+            <div class="lp-row" style="margin-top:6px"><span class="lp-label">Chief complaint</span><br>Lower back pain</div>
+          </div>
+          <div>
+            <div class="lp-section">Active problems</div>
+            <div class="lp-row">Type 2 diabetes</div>
+            <div class="lp-row">Hypertension</div>
+            <div class="lp-row">Chronic lower back pain</div>
+          </div>
+          <div>
+            <div class="lp-section">Medications</div>
+            <span class="med-pill">Metformin 500mg</span>
+            <span class="med-pill">Amlodipine 5mg</span>
+            <span class="med-pill">Ibuprofen PRN</span>
+          </div>
+          <div>
+            <div class="lp-section">Last visit</div>
+            <div class="lp-row" style="font-size:11px;line-height:1.6;color:var(--color-text-secondary)">Mar 25 — Back pain, advised physiotherapy. BP controlled.</div>
+          </div>
+        </div>
+
+        <!-- Center: recorder + SOAP -->
+        <div class="center-panel">
+          <div class="rec-zone">
+            <div class="rec-controls">
+              <button class="rec-btn-main" id="rec-btn" onclick="toggleRec()">
+                <span class="rec-dot" id="rec-dot"></span>
+                <span id="rec-label">Start recording</span>
+              </button>
+              <span class="rec-timer" id="rec-timer" style="display:none">0:00</span>
+              <span style="font-size:11px;color:var(--color-text-tertiary);margin-left:auto">Whisper STT</span>
+            </div>
+            <div class="transcript-area" id="transcript-area">Patient reports persistent lower back pain for three weeks, worse in the morning. No radiation to legs. Tried ibuprofen with partial relief. No recent trauma. BP 128/82, HR 74, afebrile. Exam shows paraspinal tenderness at L4–L5, no neurological deficits detected on exam today.</div>
+          </div>
+          <div class="ai-status">
+            <span class="ai-dot"></span>
+            Note generated by AI &middot; Review all sections before signing
+            <span style="margin-left:auto;cursor:pointer;color:var(--color-text-info);font-size:11px" onclick="sendPrompt('How do I handle AI hallucinations in clinical note generation?')">Hallucination guide ↗</span>
+          </div>
+          <div class="soap-area">
+            <div class="soap-section">
+              <div class="soap-hdr">
+                <span class="soap-hdr-label">Subjective</span>
+                <span class="ai-badge-sm">AI</span>
+              </div>
+              <div class="soap-body">
+                <div class="soap-text">42M with 3-week history of lower back pain, worse in the morning. Partial relief with ibuprofen PRN. No radiation to lower limbs. No recent trauma or new precipitating event reported.</div>
+              </div>
+            </div>
+            <div class="soap-section">
+              <div class="soap-hdr">
+                <span class="soap-hdr-label">Objective</span>
+                <span class="ai-badge-sm">AI</span>
+              </div>
+              <div class="soap-body">
+                <div class="soap-text">BP 128/82 mmHg, HR 74 bpm, afebrile. Paraspinal muscle tenderness at L4–L5 on palpation. No neurological deficits on examination.</div>
+              </div>
+            </div>
+            <div class="soap-section">
+              <div class="soap-hdr">
+                <span class="soap-hdr-label">Assessment</span>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <span class="flag-badge">Review</span>
+                  <span class="ai-badge-sm">AI</span>
+                </div>
+              </div>
+              <div class="soap-body">
+                <div class="soap-text flagged">Mechanical lower back pain, likely musculoskeletal in origin. Background of type 2 diabetes — consider peripheral neuropathy as contributing factor. No red flags for serious spinal pathology at this time.</div>
+              </div>
+            </div>
+            <div class="soap-section">
+              <div class="soap-hdr">
+                <span class="soap-hdr-label">Plan</span>
+                <span class="ai-badge-sm">AI</span>
+              </div>
+              <div class="soap-body">
+                <div class="soap-text">1. Continue ibuprofen with food, caution given diabetes. 2. Refer to physiotherapy. 3. Return if symptoms worsen or neurological symptoms develop. 4. X-ray lumbar spine if no improvement in 4 weeks.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="composer-footer">
+        <span class="footer-left">1 section flagged for review</span>
+        <div class="footer-btns">
+          <button class="btn-ghost" onclick="sendPrompt('How should I let clinicians regenerate individual SOAP sections?')">Regenerate ↗</button>
+          <button class="btn-ghost">Save draft</button>
+          <button class="btn-sign" onclick="sendPrompt('What does signing a clinical note mean legally and what should happen in the backend?')">Sign &amp; save ↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: HISTORY -->
+  <div class="screen" id="screen-history">
+    <div class="vl-toolbar">
+      <input type="text" placeholder="Search notes...">
+      <select style="font-size:12px">
+        <option>All patients</option>
+        <option>Raj Sharma</option>
+        <option>Priya Mehta</option>
+      </select>
+    </div>
+    <div class="history-list">
+      <div class="hc">
+        <div class="hc-top">
+          <div>
+            <div class="hc-name">Raj Sharma · Follow-up</div>
+            <div class="hc-date">Apr 16, 2026 · 9:00 AM · Signed</div>
+          </div>
+          <span class="vc-status st-signed" style="font-size:10px">Signed</span>
+        </div>
+        <div class="hc-preview">Assessment: Mechanical lower back pain, likely musculoskeletal. Plan: Continue ibuprofen, physiotherapy referral, X-ray if no improvement...</div>
+        <div class="hc-foot">
+          <span class="hc-tag">General medicine</span>
+          <span class="hc-tag">SOAP</span>
+          <button class="hc-action" onclick="sendPrompt('What should happen when a clinician opens a signed note for amendment?')">View / amend ↗</button>
+        </div>
+      </div>
+      <div class="hc">
+        <div class="hc-top">
+          <div>
+            <div class="hc-name">Arjun Kumar · Follow-up</div>
+            <div class="hc-date">Apr 16, 2026 · 11:30 AM · Signed</div>
+          </div>
+          <span class="vc-status st-signed" style="font-size:10px">Signed</span>
+        </div>
+        <div class="hc-preview">Assessment: Hypertension, well-controlled on amlodipine. Plan: Continue current regimen, repeat bloods in 3 months, dietary counselling...</div>
+        <div class="hc-foot">
+          <span class="hc-tag">General medicine</span>
+          <span class="hc-tag">SOAP</span>
+          <button class="hc-action" onclick="sendPrompt('How should signed notes be stored and versioned in a HIPAA-compliant system?')">View / amend ↗</button>
+        </div>
+      </div>
+      <div class="hc">
+        <div class="hc-top">
+          <div>
+            <div class="hc-name">Priya Mehta · New patient</div>
+            <div class="hc-date">Apr 16, 2026 · 10:15 AM · Draft</div>
+          </div>
+          <span class="vc-status st-draft" style="font-size:10px">Draft</span>
+        </div>
+        <div class="hc-preview">Assessment: Tension headache, likely stress-related. Plan: Paracetamol PRN, lifestyle advice, follow-up if not resolved in 2 weeks...</div>
+        <div class="hc-foot">
+          <span class="hc-tag">General medicine</span>
+          <span class="hc-tag">SOAP</span>
+          <button class="hc-action" onclick="showScreen('composer',document.querySelectorAll('.nav-tab')[1])">Continue editing ↗</button>
+        </div>
+      </div>
+      <div class="hc">
+        <div class="hc-top">
+          <div>
+            <div class="hc-name">Raj Sharma · Follow-up</div>
+            <div class="hc-date">Mar 25, 2026 · 9:00 AM · Signed</div>
+          </div>
+          <span class="vc-status st-signed" style="font-size:10px">Signed</span>
+        </div>
+        <div class="hc-preview">Assessment: Chronic lower back pain, stable. BP well-controlled. Plan: Advised physiotherapy, continue current medications, review in 3 weeks...</div>
+        <div class="hc-foot">
+          <span class="hc-tag">General medicine</span>
+          <span class="hc-tag">SOAP</span>
+          <button class="hc-action">View ↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: SETTINGS -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-body">
+      <div class="settings-card">
+        <div class="sc-title">Clinician profile</div>
+        <div class="sc-row"><span class="sc-label">Name</span><span class="sc-val">Dr. Ravi Desai</span></div>
+        <div class="sc-row"><span class="sc-label">Specialty</span><select><option>General medicine</option><option>Cardiology</option><option>Psychiatry</option><option>Surgery</option></select></div>
+        <div class="sc-row"><span class="sc-label">Default note template</span><select><option>SOAP</option><option>DAP</option><option>H&amp;P</option><option>Procedure note</option></select></div>
+      </div>
+      <div class="settings-card">
+        <div class="sc-title">AI behaviour</div>
+        <div class="sc-row"><span class="sc-label">STT engine</span><select><option>Whisper (local)</option><option>Deepgram</option><option>Azure Speech</option></select></div>
+        <div class="sc-row"><span class="sc-label">LLM model</span><select><option>Claude Sonnet</option><option>GPT-4o</option></select></div>
+        <div class="sc-row"><span class="sc-label">Confidence flagging</span><button class="toggle on" id="t1" onclick="this.classList.toggle('on')"></button></div>
+        <div class="sc-row"><span class="sc-label">Include prior visit summary</span><button class="toggle on" id="t2" onclick="this.classList.toggle('on')"></button></div>
+        <div class="sc-row"><span class="sc-label">Inject active problem list</span><button class="toggle on" id="t3" onclick="this.classList.toggle('on')"></button></div>
+        <div class="sc-row"><span class="sc-label">Inject current medications</span><button class="toggle on" id="t4" onclick="this.classList.toggle('on')"></button></div>
+      </div>
+      <div class="settings-card">
+        <div class="sc-title">Export &amp; compliance</div>
+        <div class="sc-row"><span class="sc-label">Default export</span><select><option>PDF</option><option>Copy as text</option><option>FHIR R4</option></select></div>
+        <div class="sc-row"><span class="sc-label">Retain audio after transcription</span><button class="toggle" id="t5" onclick="this.classList.toggle('on')"></button></div>
+        <div class="sc-row"><span class="sc-label">Auto-delete drafts after 30 days</span><button class="toggle on" id="t6" onclick="this.classList.toggle('on')"></button></div>
+        <div class="sc-row" style="cursor:pointer" onclick="sendPrompt('What does a HIPAA BAA requirement mean for my clinical note MVP and which vendors offer it?')"><span class="sc-label" style="color:var(--color-text-info)">HIPAA BAA status ↗</span><span class="sc-val" style="color:#1D9E75">Active</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(id, tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (tab) tab.classList.add('active');
+}
+
+let recInterval, secs = 0, recording = false;
+function toggleRec() {
+  recording = !recording;
+  const btn = document.getElementById('rec-btn');
+  const dot = document.getElementById('rec-dot');
+  const label = document.getElementById('rec-label');
+  const timer = document.getElementById('rec-timer');
+  if (recording) {
+    btn.classList.add('recording');
+    label.textContent = 'Stop recording';
+    timer.style.display = 'inline';
+    secs = 0;
+    recInterval = setInterval(() => {
+      secs++;
+      const m = Math.floor(secs / 60), s = secs % 60;
+      timer.textContent = m + ':' + String(s).padStart(2, '0');
+    }, 1000);
+  } else {
+    btn.classList.remove('recording');
+    label.textContent = 'Start recording';
+    timer.style.display = 'none';
+    clearInterval(recInterval);
+  }
+}
+</script>
