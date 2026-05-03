@@ -1,16 +1,31 @@
-# frontend
+# Carelytic Frontend
 
-A new Flutter project.
+Flutter client for clinical note generation and patient summary workflows.
 
-## Getting Started
+## API configuration
 
-This project is a starting point for a Flutter application.
+The app supports runtime API configuration through Dart defines.
 
-A few resources to get you started if this is your first Flutter project:
+Available defines:
+- API_SCHEME (default: http)
+- API_HOST (default: localhost on web, 10.0.2.2 on Android emulator, 127.0.0.1 otherwise)
+- API_PORT (default: 8000)
+- API_BEARER_TOKEN (optional; required when backend auth is enabled)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Example:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter run \
+	--dart-define=API_SCHEME=http \
+	--dart-define=API_HOST=127.0.0.1 \
+	--dart-define=API_PORT=8000 \
+	--dart-define=API_BEARER_TOKEN=replace-with-token
+```
+
+For Android emulator, host should usually be 10.0.2.2.
+
+## Notes
+
+- API calls now use retry logic for transient failures.
+- HTTP errors are surfaced to UI instead of silently returning fake clinical content.
+- Privacy mode toggle now works in the dashboard and masks patient names in the visits list.

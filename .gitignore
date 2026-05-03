@@ -1,0 +1,21 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Access key exports and secret bundles
+*accessKeys*.csv
+*secret*.csv
+*.pem
+*.key
+*.p12
+
+# Local generated/runtime data
+__pycache__/
+backend/__pycache__/
+frontend/build/
+conversation.txt
+*.m4a

@@ -1,4 +1,4 @@
-name: frontend
+name: carelytic_reports
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -35,8 +35,13 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.6.0
-  record: ^6.2.0
-  audioplayers: ^6.6.0
+  speech_to_text: ^7.0.0
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
+  printing: ^5.13.0
+  google_fonts: ^6.2.1
+  pdf: ^3.11.1
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:

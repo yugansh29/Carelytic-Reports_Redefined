@@ -1,86 +1,166 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  const ApiException(this.message, {this.statusCode});
+
+  @override
+  String toString() => statusCode == null ? message : 'HTTP $statusCode: $message';
+}
+
 class ApiService {
-  // Use 127.0.0.1 instead of localhost to avoid IPv6 resolution blocks on some environments
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String _hostOverride = String.fromEnvironment('API_HOST');
+  static const String _schemeOverride = String.fromEnvironment('API_SCHEME');
+  static const String _portOverride = String.fromEnvironment('API_PORT');
+  static const String _authToken = String.fromEnvironment('API_BEARER_TOKEN');
+  static const int _maxRetries = 2;
 
+  static String get _apiScheme => _schemeOverride.isNotEmpty ? _schemeOverride : 'http';
+  static int get _apiPort => int.tryParse(_portOverride) ?? 8001;
+
+  static String get _apiHost {
+    if (_hostOverride.isNotEmpty) return _hostOverride;
+    if (kIsWeb) return 'localhost';
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        // Android emulator maps host localhost via 10.0.2.2
+        return '10.0.2.2';
+      case TargetPlatform.iOS:
+        return '127.0.0.1';
+      default:
+        return '127.0.0.1';
+    }
+  }
+
+  static String get baseUrl => '$_apiScheme://$_apiHost:$_apiPort/api';
+
+  static Map<String, String> _jsonHeaders() {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (_authToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $_authToken';
+    }
+    return headers;
+  }
+
+  static Future<http.Response> _sendWithRetry(Future<http.Response> Function() request) async {
+    Object? lastErr;
+    for (var attempt = 0; attempt < _maxRetries; attempt++) {
+      try {
+        final response = await request();
+        if (response.statusCode == HttpStatus.tooManyRequests || response.statusCode >= 500) {
+          if (attempt < _maxRetries - 1) continue;
+        }
+        return response;
+      } catch (err) {
+        lastErr = err;
+        if (attempt == _maxRetries - 1) break;
+      }
+    }
+    throw ApiException('Network request failed: $lastErr');
+  }
+
+  static dynamic _decodeBody(http.Response response) {
+    if (response.body.isEmpty) return {};
+    return jsonDecode(response.body);
+  }
+
+  static Never _throwForStatus(http.Response response) {
+    dynamic payload;
+    try {
+      payload = _decodeBody(response);
+    } catch (_) {
+      payload = null;
+    }
+
+    final message = payload is Map<String, dynamic>
+        ? (payload['detail']?.toString() ?? payload['message']?.toString() ?? 'Request failed')
+        : 'Request failed';
+    throw ApiException(message, statusCode: response.statusCode);
+  }
+
+  // ── EHR ───────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> fetchEhr(String patientId) async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/ehr/$patientId'));
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (e) {
-      print("EHR fetch err: $e");
+    final res = await _sendWithRetry(
+      () => http.get(Uri.parse('$baseUrl/ehr/$patientId'), headers: _jsonHeaders()).timeout(const Duration(seconds: 10)),
+    );
+    if (res.statusCode == 200) {
+      final data = _decodeBody(res);
+      if (data is Map<String, dynamic>) return data;
+      throw const ApiException('Unexpected EHR payload format');
     }
-    return {};
+    _throwForStatus(res);
+  }
+  // ── Transcription (Deprecated - Now running on device) ──
+
+  // ── SOAP Generation ───────────────────────────────────────────
+  static Future<Map<String, dynamic>> generateSoap(
+      String transcript, Map<String, dynamic> patientContext) async {
+    final res = await _sendWithRetry(
+      () => http
+          .post(
+            Uri.parse('$baseUrl/generate-soap'),
+            headers: _jsonHeaders(),
+            body: jsonEncode({'transcript_text': transcript, 'patient_context': patientContext}),
+          )
+          .timeout(const Duration(seconds: 60)),
+    );
+    if (res.statusCode == 200) {
+      final data = _decodeBody(res);
+      if (data is Map<String, dynamic>) return data;
+      throw const ApiException('Unexpected SOAP payload format');
+    }
+    _throwForStatus(res);
   }
 
-  static Future<Map<String, dynamic>> transcribeAudio(Uint8List audioBytes) async {
-    try {
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/transcribe'));
-      // Adding actual audio bytes as file
-      request.files.add(http.MultipartFile.fromBytes('file', audioBytes, filename: 'audio.wav'));
-      var res = await request.send();
-      if (res.statusCode == 200) {
-        var str = await res.stream.bytesToString();
-        return jsonDecode(str);
-      }
-    } catch (e) {
-      print("Transcribe err: $e");
-    }
-    return {"transcript": "Patient: My back has been hurting for 3 weeks... (Offline Mock)", "is_fallback": true};
-  }
-
-  static Future<Map<String, dynamic>> generateSoap(String transcript, Map<String, dynamic> patientContext) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/generate-soap'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"transcript_text": transcript, "patient_context": patientContext})
-      );
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (e) {
-      print("SOAP err: $e");
-    }
-    return {"subjective": "Error generating system unavailable.", "is_fallback": true};
-  }
-
+  // ── Suggested Questions ───────────────────────────────────────
   static Future<List<String>> suggestQuestions(String buffer, String chiefComplaint) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/suggest-questions'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"transcript_buffer": buffer, "chief_complaint": chiefComplaint})
+      final res = await _sendWithRetry(
+        () => http
+            .post(
+              Uri.parse('$baseUrl/suggest-questions'),
+              headers: _jsonHeaders(),
+              body: jsonEncode({'transcript_buffer': buffer, 'chief_complaint': chiefComplaint}),
+            )
+            .timeout(const Duration(seconds: 30)),
       );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        List<dynamic> q = data['questions'] ?? [];
+      if (res.statusCode == 200) {
+        final data = _decodeBody(res);
+        final List<dynamic> q = data['questions'] ?? [];
         return q.map((e) => e.toString()).toList();
       }
+      if (res.statusCode == 401 || res.statusCode == 403) {
+        throw ApiException('Unauthorized request', statusCode: res.statusCode);
+      }
     } catch (e) {
-      print("Questions err: $e");
+      debugPrint('Questions err: $e');
     }
     return [];
   }
 
+  // ── Patient Summary ───────────────────────────────────────────
   static Future<Map<String, dynamic>> getPatientSummary(Map<String, dynamic> soapJson) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/patient-summary'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"soap_json": soapJson})
-      );
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (e) {
-      print("Summary err: $e");
+    final res = await _sendWithRetry(
+      () => http
+          .post(
+            Uri.parse('$baseUrl/patient-summary'),
+            headers: _jsonHeaders(),
+            body: jsonEncode({'soap_json': soapJson}),
+          )
+          .timeout(const Duration(seconds: 60)),
+    );
+    if (res.statusCode == 200) {
+      final data = _decodeBody(res);
+      if (data is Map<String, dynamic>) return data;
+      throw const ApiException('Unexpected summary payload format');
     }
-    return {"summary": "Error generating summary.", "is_fallback": true};
+    _throwForStatus(res);
   }
 }

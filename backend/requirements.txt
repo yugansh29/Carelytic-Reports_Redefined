@@ -2,6 +2,9 @@ fastapi
 uvicorn
 pydantic
 openai
-anthropic
+anthropic[bedrock]
+boto3
 python-dotenv
 python-multipart
+pytest
+httpx
