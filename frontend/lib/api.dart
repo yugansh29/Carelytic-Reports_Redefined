@@ -21,6 +21,23 @@ class ApiService {
   static const String _authToken = String.fromEnvironment('API_BEARER_TOKEN');
   static const int _maxRetries = 2;
 
+  /// When set (e.g. in tests with [http.MockClient]), all requests use this client instead of the default.
+  static http.Client? httpClient;
+
+  static Future<http.Response> _viaClient(
+    Future<http.Response> Function(http.Client client) send,
+  ) async {
+    if (httpClient != null) {
+      return send(httpClient!);
+    }
+    final client = http.Client();
+    try {
+      return await send(client);
+    } finally {
+      client.close();
+    }
+  }
+
   static String get _apiScheme => _schemeOverride.isNotEmpty ? _schemeOverride : 'http';
   static int get _apiPort => int.tryParse(_portOverride) ?? 8001;
 
@@ -87,8 +104,10 @@ class ApiService {
 
   // ── EHR ───────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> fetchEhr(String patientId) async {
+    final uri = Uri.parse('$baseUrl/ehr/$patientId');
+    final headers = _jsonHeaders();
     final res = await _sendWithRetry(
-      () => http.get(Uri.parse('$baseUrl/ehr/$patientId'), headers: _jsonHeaders()).timeout(const Duration(seconds: 10)),
+      () => _viaClient((c) => c.get(uri, headers: headers).timeout(const Duration(seconds: 10))),
     );
     if (res.statusCode == 200) {
       final data = _decodeBody(res);
@@ -102,14 +121,11 @@ class ApiService {
   // ── SOAP Generation ───────────────────────────────────────────
   static Future<Map<String, dynamic>> generateSoap(
       String transcript, Map<String, dynamic> patientContext) async {
+    final uri = Uri.parse('$baseUrl/generate-soap');
+    final headers = _jsonHeaders();
+    final body = jsonEncode({'transcript_text': transcript, 'patient_context': patientContext});
     final res = await _sendWithRetry(
-      () => http
-          .post(
-            Uri.parse('$baseUrl/generate-soap'),
-            headers: _jsonHeaders(),
-            body: jsonEncode({'transcript_text': transcript, 'patient_context': patientContext}),
-          )
-          .timeout(const Duration(seconds: 60)),
+      () => _viaClient((c) => c.post(uri, headers: headers, body: body).timeout(const Duration(seconds: 60))),
     );
     if (res.statusCode == 200) {
       final data = _decodeBody(res);
@@ -122,14 +138,11 @@ class ApiService {
   // ── Suggested Questions ───────────────────────────────────────
   static Future<List<String>> suggestQuestions(String buffer, String chiefComplaint) async {
     try {
+      final uri = Uri.parse('$baseUrl/suggest-questions');
+      final headers = _jsonHeaders();
+      final body = jsonEncode({'transcript_buffer': buffer, 'chief_complaint': chiefComplaint});
       final res = await _sendWithRetry(
-        () => http
-            .post(
-              Uri.parse('$baseUrl/suggest-questions'),
-              headers: _jsonHeaders(),
-              body: jsonEncode({'transcript_buffer': buffer, 'chief_complaint': chiefComplaint}),
-            )
-            .timeout(const Duration(seconds: 30)),
+        () => _viaClient((c) => c.post(uri, headers: headers, body: body).timeout(const Duration(seconds: 30))),
       );
       if (res.statusCode == 200) {
         final data = _decodeBody(res);
@@ -147,14 +160,11 @@ class ApiService {
 
   // ── Patient Summary ───────────────────────────────────────────
   static Future<Map<String, dynamic>> getPatientSummary(Map<String, dynamic> soapJson) async {
+    final uri = Uri.parse('$baseUrl/patient-summary');
+    final headers = _jsonHeaders();
+    final body = jsonEncode({'soap_json': soapJson});
     final res = await _sendWithRetry(
-      () => http
-          .post(
-            Uri.parse('$baseUrl/patient-summary'),
-            headers: _jsonHeaders(),
-            body: jsonEncode({'soap_json': soapJson}),
-          )
-          .timeout(const Duration(seconds: 60)),
+      () => _viaClient((c) => c.post(uri, headers: headers, body: body).timeout(const Duration(seconds: 60))),
     );
     if (res.statusCode == 200) {
       final data = _decodeBody(res);
